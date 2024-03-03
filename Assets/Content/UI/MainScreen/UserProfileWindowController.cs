@@ -39,7 +39,7 @@ namespace Content.UI.MainScreen
         )
         {
             _referencedProfileID = referencedProfileID;
-            //userProfileImage.sprite = userProfileImageSprite;
+            userProfileImage.sprite = userProfileImageSprite;
             userProfileNameText.text = userProfileName;
             userProfileGenderText.text = userProfileGender;
             userProfileEmailText.text = userProfileEmail;

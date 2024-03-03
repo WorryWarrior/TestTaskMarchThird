@@ -73,10 +73,12 @@ namespace Content.Infrastructure.States
             hudController.OnProfileWindowOpenRequested += (windowInstance, id) =>
             {
                 UserData userData = _persistentDataService.UserConfig.Data[id];
+                Sprite userDataPicture = _persistentDataService.UserPictures.UserPictures[
+                    id % _persistentDataService.UserPictures.UserPictures.Count];
 
                 windowInstance.SetProfileWindowData(
                     id,
-                    null,
+                    userDataPicture,
                     string.Join(" ", userData.First_Name, userData.Last_Name),
                     userData.Gender,
                     userData.Email,
