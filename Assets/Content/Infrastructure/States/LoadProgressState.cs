@@ -62,7 +62,7 @@ namespace Content.Infrastructure.States
                 Data = clampedUserData
             };
 
-            _persistentDataService.UserConfig = userConfigData;
+            //_persistentDataService.UserConfig = userConfigData;
         }
 
         private async void LoadOrCreateFavoriteIndices()
