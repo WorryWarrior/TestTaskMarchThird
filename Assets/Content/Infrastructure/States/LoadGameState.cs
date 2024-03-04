@@ -55,12 +55,31 @@ namespace Content.Infrastructure.States
 
         private async Task ConstructUIRoot() => await _uiFactory.CreateUIRoot();
 
-        private async Task ConstructHUD()
+        private Task ConstructHUD()
         {
-            HudController hudController = UnityEngine.Object.FindObjectOfType<HudController>();//await _uiFactory.CreateHud();
+            HudController
+                hudController = UnityEngine.Object.FindObjectOfType<HudController>(); //await _uiFactory.CreateHud();
 
             hudController.OnFavoriteContainerToggleSelected +=
                 async () => await ConstructFavoriteUserInfoBoxes(hudController);
+
+            hudController.OnUserInfoBoxCreated += userInfoBox =>
+            {
+                userInfoBox.OnFavoriteTogglePressed += status =>
+                {
+                    if (status)
+                        _persistentDataService.UserFavorite.FavoriteIDs.Add(userInfoBox.Index);
+                    else
+                        _persistentDataService.UserFavorite.FavoriteIDs.Remove(userInfoBox.Index);
+
+                    _saveLoadService.SaveUserFavorites();
+                };
+
+                userInfoBox.OnOpenProfileButtonPressed += () => hudController.OpenUserProfile(userInfoBox.Index);
+                userInfoBox.ChangeFavoriteStatus(
+                    _persistentDataService.UserFavorite.FavoriteIDs.Contains(userInfoBox.Index));
+                userInfoBox.InitializeCallbacks();
+            };
 
             hudController.OnProfileWindowInitializeRequested += windowInstance =>
             {
@@ -92,18 +111,7 @@ namespace Content.Infrastructure.States
             };
 
             hudController.Initialize();
-            await ConstructAllUserInfoBoxes(hudController);
-        }
-
-        private async Task ConstructAllUserInfoBoxes(HudController hudController)
-        {
-            for (int i = 0; i < _persistentDataService.UserConfig.Data.Count; i++)
-            {
-                UserInfoBoxController infoBoxController = await ConstructInfoBox(hudController, i, false);
-
-                infoBoxController.ChangeFavoriteStatus(_persistentDataService.UserFavorite.FavoriteIDs.Contains(i));
-                hudController.RegisterUserInfoBox(infoBoxController);
-            }
+            return Task.CompletedTask;
         }
 
         private async Task ConstructFavoriteUserInfoBoxes(HudController hudController)
@@ -111,25 +119,31 @@ namespace Content.Infrastructure.States
             IOrderedEnumerable<int> favoriteIDsAscending =
                 _persistentDataService.UserFavorite.FavoriteIDs.AsEnumerable().ToList().OrderBy(it => it);
 
+            int listIndex = 0;
             foreach (int favoriteID in favoriteIDsAscending)
             {
-                UserInfoBoxController infoBoxController = await ConstructInfoBox(hudController, favoriteID, true);
+                UserInfoBoxController infoBoxController =
+                    await ConstructInfoBox(hudController, favoriteID, listIndex, true);
                 infoBoxController.ChangeFavoriteStatus(true);
+                infoBoxController.InitializeCallbacks();
+                listIndex++;
             }
         }
 
-        private async Task<UserInfoBoxController> ConstructInfoBox(HudController hudController, int id, bool asFavorite)
+        private async Task<UserInfoBoxController> ConstructInfoBox(HudController hudController,
+            int id, int orderInList, bool asFavorite)
         {
             UserData userData = _persistentDataService.UserConfig.Data[id];
             Sprite userDataPicture = _persistentDataService.UserPictures.UserPictures[
                 id % _persistentDataService.UserPictures.UserPictures.Count];
 
             UserInfoBoxController userInfoBoxController = await _uiFactory.CreateUserInfoBox(hudController, asFavorite);
-            userInfoBoxController.Initialize(id,
+            userInfoBoxController.UpdateData(id,
                 userDataPicture,
                 string.Join(" ", userData.First_Name, userData.Last_Name),
                 userData.Email,
-                userData.Ip_Address);
+                userData.Ip_Address,
+                orderInList % 2 == 0);
             userInfoBoxController.ChangeFavoriteStatus(true);
 
             userInfoBoxController.OnFavoriteTogglePressed += status =>

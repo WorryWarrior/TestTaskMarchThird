@@ -1,16 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using Content.Data;
 using Content.Infrastructure.Services.PersistentData;
+using PolyAndCode.UI;
 using TMPro;
 using UnityEngine;
 
 namespace Content.UI.MainScreen
 {
-    public delegate void OnProfileWindowOpenRequestedEventHandler(UserProfileWindowController windowInstance, int profileID);
+    public delegate void OnProfileWindowOpenRequestedEventHandler(UserProfileWindowController windowInstance,
+        int profileID);
+
     public delegate void OnProfileWindowInitializeRequestedEventHandler(UserProfileWindowController windowInstance);
+
     public delegate void OnFavoriteTogglePressedEventHandler(bool toggleState, int referencedProfileID);
 
-    public class HudController : MonoBehaviour
+    public class HudController : MonoBehaviour, IRecyclableScrollRectDataSource
     {
         [SerializeField] private FooterToggleController leftFooterToggle = null;
         [SerializeField] private FooterToggleController rightFooterToggle = null;
@@ -19,16 +24,17 @@ namespace Content.UI.MainScreen
         [SerializeField] private CanvasGroup fullScrollViewCanvasGroup = null;
         [SerializeField] private CanvasGroup favoriteScrollViewCanvasGroup = null;
 
+        [SerializeField] private RecyclableScrollRect userInfoBoxScrollRect = null;
+
         public RectTransform userInfoBoxContainer;
         public RectTransform userInfoBoxContainerFavorite;
 
         private IPersistentDataService _persistentDataService;
 
-        private readonly List<UserInfoBoxController> _userInfoBoxes = new();
-
         public event Action OnFavoriteContainerToggleSelected;
         public event OnProfileWindowInitializeRequestedEventHandler OnProfileWindowInitializeRequested;
         public event OnProfileWindowOpenRequestedEventHandler OnProfileWindowOpenRequested;
+        public event Action<UserInfoBoxController> OnUserInfoBoxCreated;
 
         public void Construct(
             IPersistentDataService persistentDataService
@@ -39,9 +45,11 @@ namespace Content.UI.MainScreen
 
         public void Initialize()
         {
+            userInfoBoxScrollRect.Initialize(this);
+
             InitializeFooterToggles();
             Construct(DIContainer.Container.GetService<IPersistentDataService>());
-            
+
             userProfileWindowController.OnBackButtonPressed += ToggleScrollViews;
             OnProfileWindowInitializeRequested?.Invoke(userProfileWindowController);
             userProfileWindowController.Initialize();
@@ -49,9 +57,6 @@ namespace Content.UI.MainScreen
             ToggleFavoriteScrollView(false);
             userProfileWindowController.gameObject.SetActive(false);
         }
-
-        public void RegisterUserInfoBox(UserInfoBoxController userInfoBoxController) =>
-            _userInfoBoxes.Add(userInfoBoxController);
 
         public void OpenUserProfile(int profileID)
         {
@@ -86,7 +91,7 @@ namespace Content.UI.MainScreen
         {
             if (leftFooterToggle.toggle.isOn)
             {
-                RefreshFullTab();
+                ForceRepaintFullListFavoriteStatus();
                 ToggleFullScrollView(true);
                 ToggleFavoriteScrollView(false);
             }
@@ -118,16 +123,6 @@ namespace Content.UI.MainScreen
             favoriteScrollViewCanvasGroup.blocksRaycasts = value;
         }
 
-        private void RefreshFullTab()
-        {
-            for (int i = 0; i < _userInfoBoxes.Count; i++)
-            {
-                _userInfoBoxes[i]
-                    .ChangeFavoriteStatus(
-                        _persistentDataService.UserFavorite.FavoriteIDs.Contains(_userInfoBoxes[i].Index));
-            }
-        }
-
         private void RefreshFavoriteTab()
         {
             for (int i = 0; i < userInfoBoxContainerFavorite.childCount; i++)
@@ -136,6 +131,39 @@ namespace Content.UI.MainScreen
             }
 
             OnFavoriteContainerToggleSelected?.Invoke();
+        }
+
+        private void ForceRepaintFullListFavoriteStatus()
+        {
+            UserInfoBoxController[] userInfoBoxes =
+                userInfoBoxScrollRect.GetComponentsInChildren<UserInfoBoxController>();
+
+            for (int i = 0; i < userInfoBoxes.Length; i++)
+            {
+                userInfoBoxes[i]
+                    .ChangeFavoriteStatus(
+                        _persistentDataService.UserFavorite.FavoriteIDs.Contains(userInfoBoxes[i].Index));
+            }
+        }
+
+        public int GetItemCount() => _persistentDataService.UserConfig.Data.Count;
+
+        public void SetCell(ICell cell, int index)
+        {
+            UserInfoBoxController item = (UserInfoBoxController)cell;
+
+            UserData userData = _persistentDataService.UserConfig.Data[index];
+            Sprite userDataPicture = _persistentDataService.UserPictures.UserPictures[
+                index % _persistentDataService.UserPictures.UserPictures.Count];
+
+            item.UpdateData(index,
+                userDataPicture,
+                string.Join(" ", userData.First_Name, userData.Last_Name),
+                userData.Email,
+                userData.Ip_Address,
+                index % 2 == 0);
+
+            OnUserInfoBoxCreated?.Invoke(item);
         }
     }
 }

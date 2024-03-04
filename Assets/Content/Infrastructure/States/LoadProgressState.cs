@@ -55,14 +55,7 @@ namespace Content.Infrastructure.States
         private async Task LoadUserConfig()
         {
             UserConfigData userConfigData = await _saveLoadService.LoadUserConfig();
-
-            List<UserData> clampedUserData = userConfigData.Data.Take(150).ToList();
-            _persistentDataService.UserConfig = new UserConfigData
-            {
-                Data = clampedUserData
-            };
-
-            //_persistentDataService.UserConfig = userConfigData;
+            _persistentDataService.UserConfig = userConfigData;
         }
 
         private async void LoadOrCreateFavoriteIndices()
