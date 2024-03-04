@@ -49,7 +49,7 @@ namespace Content.Infrastructure.States
 
         private async void OnGameSceneLoaded(SceneName sceneName)
         {
-            await ConstructUIRoot();
+            //await ConstructUIRoot();
             await ConstructHUD();
         }
 
@@ -57,7 +57,7 @@ namespace Content.Infrastructure.States
 
         private async Task ConstructHUD()
         {
-            HudController hudController = await _uiFactory.CreateHud();
+            HudController hudController = UnityEngine.Object.FindObjectOfType<HudController>();//await _uiFactory.CreateHud();
 
             hudController.OnFavoriteContainerToggleSelected +=
                 async () => await ConstructFavoriteUserInfoBoxes(hudController);

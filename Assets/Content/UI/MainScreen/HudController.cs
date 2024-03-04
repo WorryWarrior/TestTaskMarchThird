@@ -40,7 +40,8 @@ namespace Content.UI.MainScreen
         public void Initialize()
         {
             InitializeFooterToggles();
-
+            Construct(DIContainer.Container.GetService<IPersistentDataService>());
+            
             userProfileWindowController.OnBackButtonPressed += ToggleScrollViews;
             OnProfileWindowInitializeRequested?.Invoke(userProfileWindowController);
             userProfileWindowController.Initialize();

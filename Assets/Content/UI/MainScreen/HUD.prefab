@@ -2034,7 +2034,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: '| HEADER TEXT |'
+  m_text: '| HEADER NAME |'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: b2b3e65379366cc42bfa14c438d3fa0b, type: 2}
   m_sharedMaterial: {fileID: 8811802306062551023, guid: b2b3e65379366cc42bfa14c438d3fa0b, type: 2}
