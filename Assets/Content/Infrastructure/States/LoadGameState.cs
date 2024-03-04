@@ -37,7 +37,10 @@ namespace Content.Infrastructure.States
 
         public async void Enter()
         {
-            await _sceneLoader.LoadScene(SceneName.Core, OnGameSceneLoaded);
+            await _uiFactory.WarmUp();
+
+            OnGameSceneLoaded(SceneName.Core);
+            //await _sceneLoader.LoadScene(SceneName.Core, OnGameSceneLoaded);
         }
 
         public void Exit()

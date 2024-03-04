@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Content.Data;
 using Content.Infrastructure.AssetManagement;
+using Content.Infrastructure.Factories.Interfaces;
 using Content.Infrastructure.Services.Logging;
 using Content.Infrastructure.Services.PersistentData;
 using Content.Infrastructure.Services.SaveLoad;
@@ -41,8 +42,8 @@ namespace Content.Infrastructure.States
         public async void Enter()
         {
             await LoadOrDownloadUserPictures();
+            await LoadUserConfig();
             LoadOrCreateFavoriteIndices();
-            LoadUserConfig();
 
             _stateMachine.Enter<LoadGameState>();
         }
@@ -51,16 +52,17 @@ namespace Content.Infrastructure.States
         {
         }
 
-        private async void LoadUserConfig()
+        private async Task LoadUserConfig()
         {
             UserConfigData userConfigData = await _saveLoadService.LoadUserConfig();
 
-            // Limiting the size from 2000 to 150 to avoid performance issues
             List<UserData> clampedUserData = userConfigData.Data.Take(150).ToList();
             _persistentDataService.UserConfig = new UserConfigData
             {
                 Data = clampedUserData
             };
+
+            _persistentDataService.UserConfig = userConfigData;
         }
 
         private async void LoadOrCreateFavoriteIndices()
@@ -111,7 +113,7 @@ namespace Content.Infrastructure.States
             };
         }
 
-        async Task<Texture2D> DownloadImageAsync(string url)
+        private async Task<Texture2D> DownloadImageAsync(string url)
         {
             TaskCompletionSource<Texture2D> tcs = new TaskCompletionSource<Texture2D>();
 
@@ -119,7 +121,7 @@ namespace Content.Infrastructure.States
             {
                 UnityWebRequestAsyncOperation asyncOp = www.SendWebRequest();
 
-                asyncOp.completed += (op) =>
+                asyncOp.completed += _ =>
                 {
                     if (www.result == UnityWebRequest.Result.ConnectionError ||
                         www.result == UnityWebRequest.Result.ProtocolError)

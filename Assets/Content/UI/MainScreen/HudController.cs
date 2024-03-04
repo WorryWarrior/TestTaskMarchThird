@@ -16,8 +16,8 @@ namespace Content.UI.MainScreen
         [SerializeField] private FooterToggleController rightFooterToggle = null;
         [SerializeField] private UserProfileWindowController userProfileWindowController = null;
         [SerializeField] private TextMeshProUGUI headerText = null;
-        [SerializeField] private GameObject fullScrollView = null;
-        [SerializeField] private GameObject favoriteScrollView = null;
+        [SerializeField] private CanvasGroup fullScrollViewCanvasGroup = null;
+        [SerializeField] private CanvasGroup favoriteScrollViewCanvasGroup = null;
 
         public RectTransform userInfoBoxContainer;
         public RectTransform userInfoBoxContainerFavorite;
@@ -45,7 +45,7 @@ namespace Content.UI.MainScreen
             OnProfileWindowInitializeRequested?.Invoke(userProfileWindowController);
             userProfileWindowController.Initialize();
 
-            favoriteScrollView.gameObject.SetActive(false);
+            ToggleFavoriteScrollView(false);
             userProfileWindowController.gameObject.SetActive(false);
         }
 
@@ -86,21 +86,35 @@ namespace Content.UI.MainScreen
             if (leftFooterToggle.toggle.isOn)
             {
                 RefreshFullTab();
-                fullScrollView.SetActive(true);
-                favoriteScrollView.SetActive(false);
+                ToggleFullScrollView(true);
+                ToggleFavoriteScrollView(false);
             }
             else
             {
                 RefreshFavoriteTab();
-                fullScrollView.SetActive(false);
-                favoriteScrollView.SetActive(true);
+                ToggleFullScrollView(false);
+                ToggleFavoriteScrollView(true);
             }
         }
 
         private void DisableScrollViews()
         {
-            fullScrollView.SetActive(false);
-            favoriteScrollView.SetActive(false);
+            ToggleFullScrollView(false);
+            ToggleFavoriteScrollView(false);
+        }
+
+        private void ToggleFullScrollView(bool value)
+        {
+            fullScrollViewCanvasGroup.alpha = value ? 1f : 0f;
+            fullScrollViewCanvasGroup.interactable = value;
+            fullScrollViewCanvasGroup.blocksRaycasts = value;
+        }
+
+        private void ToggleFavoriteScrollView(bool value)
+        {
+            favoriteScrollViewCanvasGroup.alpha = value ? 1f : 0f;
+            favoriteScrollViewCanvasGroup.interactable = value;
+            favoriteScrollViewCanvasGroup.blocksRaycasts = value;
         }
 
         private void RefreshFullTab()

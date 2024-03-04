@@ -21,7 +21,6 @@ namespace Content.Infrastructure
             RegisterStates();
         }
 
-
         private void RegisterProviders()
         {
             DIContainer.Container.RegisterService<IAssetProvider>(new AssetProvider());
@@ -40,7 +39,8 @@ namespace Content.Infrastructure
             DIContainer.Container.RegisterService<IPersistentDataService>(new PersistentDataService());
             DIContainer.Container.RegisterService<ISaveLoadService>(
                 new SaveLoadService(DIContainer.Container.GetService<IPersistentDataService>(),
-                    DIContainer.Container.GetService<IAssetProvider>()));
+                    DIContainer.Container.GetService<IAssetProvider>(),
+                    DIContainer.Container.GetService<ILoggingService>()));
         }
 
         private void RegisterStates()

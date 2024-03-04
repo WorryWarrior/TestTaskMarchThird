@@ -2,30 +2,38 @@
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
 using System.Threading.Tasks;
 using Content.Data;
 using Content.Infrastructure.AssetManagement;
+using Content.Infrastructure.Services.Logging;
 using Content.Infrastructure.Services.PersistentData;
 using static Newtonsoft.Json.JsonConvert;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace Content.Infrastructure.Services.SaveLoad
 {
     public class SaveLoadService : ISaveLoadService
     {
         private const string UserFavoriteKey = "CFG_UserFavorite";
-        private const string UserConfigKey = "CFG_UserData";
         private const string UserPicturesSaveFileName = "UserPictures.bin";
+
+        private const string UserConfigSource =
+            "https://drive.google.com/uc?export=download&id=1YvE6Y5-vxVWXrrYyb83ssqMfVUUkndLw";
 
         private readonly IPersistentDataService _persistentDataService;
         private readonly IAssetProvider _assetProvider;
+        private readonly ILoggingService _loggingService;
 
         public SaveLoadService(
             IPersistentDataService persistentDataService,
-            IAssetProvider assetProvider)
+            IAssetProvider assetProvider,
+            ILoggingService loggingService)
         {
             _persistentDataService = persistentDataService;
             _assetProvider = assetProvider;
+            _loggingService = loggingService;
         }
 
         public void SaveUserFavorites()
@@ -43,11 +51,33 @@ namespace Content.Infrastructure.Services.SaveLoad
 
         public async Task<UserConfigData> LoadUserConfig()
         {
-            TextAsset userDataFile = await _assetProvider.Load<TextAsset>(UserConfigKey);
-            string userDataJson = userDataFile.text;
-            UserConfigData userConfigData = DeserializeObject<UserConfigData>(userDataJson);
+            TaskCompletionSource<string> tcs = new TaskCompletionSource<string>();
 
-            return userConfigData;
+            using (UnityWebRequest www = UnityWebRequest.Get(UserConfigSource))
+            {
+                UnityWebRequestAsyncOperation asyncOp = www.SendWebRequest();
+
+                asyncOp.completed += _ =>
+                {
+                    if (www.result == UnityWebRequest.Result.ConnectionError ||
+                        www.result == UnityWebRequest.Result.ProtocolError)
+                    {
+                        _loggingService.LogWarning("Error loading user config: " + www.error);
+                        tcs.SetResult(string.Empty);
+                    }
+                    else
+                    {
+                        string configText = www.downloadHandler.text;
+                        tcs.SetResult(configText);
+                    }
+                };
+
+                await tcs.Task;
+            }
+
+            _loggingService.LogMessage(tcs.Task.Result);
+
+            return DeserializeObject<UserConfigData>(tcs.Task.Result);
         }
 
         public void SaveUserPictures()
